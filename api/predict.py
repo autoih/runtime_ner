@@ -13,7 +13,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
-
+import sys
+sys.path.append('/Users/saishruthi.tn@ibm.com/Desktop/MAX-Named-Entity-Tagger')
 from core.model import ModelWrapper
 
 from maxfw.core import MAX_API, PredictAPI, MetadataAPI
@@ -75,7 +76,7 @@ class ModelLabelsAPI(MetadataAPI):
 # === Predict API
 
 
-input_example = ['John lives SF here.', 'I ate apple.', 'I am a dancer and singer.', 'Model Asset Exchange NER model is popular than other models.']
+input_example = ['John lives SF here.', 'I ate apple.', 'I am a dancer and singer.', 'Model Asset Exchange NER model is popular than other models.', 'I like banana.', 'I ate a lot of apples.']
 ent_example = ['I-PER', 'O', 'O', 'I-LOC', 'O', 'O', 'O', 'O', 'I-ORG']
 term_example = ['John', 'lives', 'in', 'Brussels', 'and', 'works', 'for', 'the', 'EU']
 
@@ -102,23 +103,50 @@ predict_response = MAX_API.model('ModelPredictResponse', {
 })
 
 
-class ModelPredictAPI(PredictAPI):
+# class ModelPredictAPI(PredictAPI):
+#
+#     @MAX_API.doc('predict')
+#     @MAX_API.expect(model_input)
+#     @MAX_API.marshal_with(predict_response)
+#     def post(self):
+#         '''Make a prediction given input data'''
+#         result = {'status': 'error'}
+#
+#         inp_text = [
+#             "John lives SF here.",
+#             "I ate apple.",
+#             "I am a dancer and singer.",
+#             "Model Asset Exchange NER model is popular than other models."
+#             ]
+#         #j = request.get_json()
+#         text = inp_text
+#         print(text)
+#         entities, terms = model_wrapper.predict(text)
+#         model_pred = {
+#             'tags': entities,
+#             'terms': terms
+#         }
+#         result['prediction'] = model_pred
+#         result['status'] = 'ok'
+#
+#         return result
 
-    @MAX_API.doc('predict')
-    @MAX_API.expect(model_input)
-    @MAX_API.marshal_with(predict_response)
-    def post(self):
-        '''Make a prediction given input data'''
-        result = {'status': 'error'}
 
-        j = request.get_json()
-        text = j['text']
-        entities, terms = model_wrapper.predict(text)
-        model_pred = {
+inp_text = [
+            "John lives SF here.",
+            "I ate apple.",
+            "I am a dancer and singer.",
+            "Model Asset Exchange NER model is popular than other models.",
+            "I like banana.",
+            "I ate a lot of apples.",
+            ]
+
+text = inp_text
+print(text)
+entities, terms = model_wrapper.predict(text)
+model_pred = {
             'tags': entities,
             'terms': terms
         }
-        result['prediction'] = model_pred
-        result['status'] = 'ok'
+print(model_pred)
 
-        return result

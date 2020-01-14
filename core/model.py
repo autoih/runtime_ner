@@ -66,29 +66,29 @@ class ModelWrapper(MAXModelWrapper):
         self.n_char = len(vocab_chars)
         n_tags = len(vocab_tags)
         self.pad_tag = n_tags
-        print('padding tags.....', self.pad_tag)
+        # print('padding tags.....', self.pad_tag)
         self.n_labels = n_tags + 1
 
     def inter_process(self, words):
-        print('inside inter process')
-        print(words)
-        print('stacking process')
+        # print('inside inter process')
+        # print(words)
+        # print('stacking process')
         word_ids = []
         char_ids = []
         for w in words:
             char_id, word_id = zip(*w)
-            print(char_id, word_id)
+            # print(char_id, word_id)
             char_ids.append(char_id)
             word_ids.append(word_id)
         word_ids, _ = pad_sequences(word_ids, pad_tok=self.pad_tag)
         char_ids, _ = pad_sequences(char_ids, pad_tok=self.pad_tag, nlevels=2)
-        print('atfer padding')
-        print(word_ids)
-        print(char_ids)
+        # print('atfer padding')
+        # print(word_ids)
+        # print(char_ids)
         word_ids_arr = np.array(word_ids)
         char_ids_arr = np.array(char_ids)
-        print('shape of word array', word_ids_arr.shape)
-        print('shape of char array', char_ids_arr.shape)
+        # print('shape of word array', word_ids_arr.shape)
+        # print('shape of char array', char_ids_arr.shape)
         return word_ids_arr, char_ids_arr
 
 
@@ -133,13 +133,13 @@ class ModelWrapper(MAXModelWrapper):
     #     })
     #     return np.argmax(pred, -1)
 
-    def _predict(self, x, predict_batch_size=2):
-        print('---- Test -----')
-        print(x)
+    def _predict(self, x, predict_batch_size=3):
+        # print('---- Test -----')
+        # print(x)
         sentence_token = []
         result = []
         for i in range(0, len(x), predict_batch_size):
-            print(i)
+            # print(i)
             # Accumulate data
             input_data = x[i:i + predict_batch_size]
             # iterate through data and get sentence tokens
@@ -154,7 +154,7 @@ class ModelWrapper(MAXModelWrapper):
                 sentence_token.append(words_raw)
 
             # pad sentence
-            print('batch words', words)
+            # print('batch words', words)
             word_ids_arr, char_ids_arr = self.inter_process(words)
 
         #words, word_ids_arr, char_ids_arr = self._pre_process(x)
@@ -165,13 +165,13 @@ class ModelWrapper(MAXModelWrapper):
                 self.char_ids_tensor: char_ids_arr
             })
             labels_pred_arr = np.argmax(pred, -1)
-            print('Inside post process')
+            # print('Inside post process')
             #print(x)
 
             for r in labels_pred_arr:
                 result.append([self.id_to_tag[i] for i in r.ravel()])
-        print('final result', result)
-        print('sentence token', sentence_token)
+        # print('final result', result)
+        # print('sentence token', sentence_token)
         #labels_pred_arr = self._predict(word_ids_arr, char_ids_arr)
         #labels_pred = self._post_process(labels_pred_arr)
         return result, sentence_token
