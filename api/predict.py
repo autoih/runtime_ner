@@ -14,7 +14,7 @@
 # limitations under the License.
 #
 import sys
-sys.path.append('/Users/saishruthi.tn@ibm.com/Desktop/MAX-Named-Entity-Tagger')
+sys.path.append('/Users/ihjhuo@ibm.com/nerbatch/MAX-Named-Entity-Tagger')
 from core.model import ModelWrapper
 
 from maxfw.core import MAX_API, PredictAPI, MetadataAPI
