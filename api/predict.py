@@ -133,16 +133,20 @@ predict_response = MAX_API.model('ModelPredictResponse', {
 #         return result
 
 
-with open('/Users/ihjhuo@ibm.com/nerbatch/MAX-Named-Entity-Tagger/sire_data_test.json', 'r') as myfile:
-    data = myfile.read()
-# parse file
-watson_test_data_obj = json.loads(data)
+# with open('/Users/ihjhuo@ibm.com/nerbatch/MAX-Named-Entity-Tagger/en-50k-200.json', 'r') as myfile:
+#     data = myfile.read()
+# watson_test_data_obj = json.loads(data)
+
+watson_test_data_obj = [] 
+for line in open('en-50k-200.json', 'r'):
+    watson_test_data_obj.append(json.loads(line))
+    
 
 input_sentences = []
 for i in range(len(watson_test_data_obj)):
     input_sentences.append(watson_test_data_obj[i]['text'])
-    if len(input_sentences) == 100:
-        break
+    # if len(input_sentences) == 100:
+    #     break
 
 # inp_text = [
 #             "John lives SF here.",

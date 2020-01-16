@@ -25,6 +25,7 @@ import logging
 from core.utils import get_processing_word, load_vocab, pad_sequences
 from config import DEFAULT_MODEL_PATH, MODEL_META_DATA as model_meta
 import timeit
+import pandas as pd
 
 logger = logging.getLogger()
 
@@ -183,4 +184,15 @@ class ModelWrapper(MAXModelWrapper):
 
         print('PP time', pp_elapsed_time)
         print('inf', inf_elapsed_time)
+
+        pp_elapsed_time.append(sum(pp_elapsed_time)/len(pp_elapsed_time))
+        inf_elapsed_time.append(sum(inf_elapsed_time)/len(inf_elapsed_time))
+
+        df = pd.DataFrame({'tokenization time': pp_elapsed_time,
+                           'inference time': inf_elapsed_time})
+
+        df.to_csv('en-50k-200_bts10.csv')
+
+        print(len(inf_elapsed_time))
+
         return result, sentence_token
