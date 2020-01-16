@@ -24,6 +24,7 @@ from tensorflow.python.saved_model import tag_constants
 import logging
 from core.utils import get_processing_word, load_vocab, pad_sequences
 from config import DEFAULT_MODEL_PATH, MODEL_META_DATA as model_meta
+import timeit
 
 logger = logging.getLogger()
 
@@ -133,11 +134,13 @@ class ModelWrapper(MAXModelWrapper):
     #     })
     #     return np.argmax(pred, -1)
 
-    def _predict(self, x, predict_batch_size=3):
+    def _predict(self, x, predict_batch_size=10):
         # print('---- Test -----')
         # print(x)
         sentence_token = []
         result = []
+        pp_elapsed_time = []
+        inf_elapsed_time = []
         for i in range(0, len(x), predict_batch_size):
             # print(i)
             # Accumulate data
@@ -145,6 +148,7 @@ class ModelWrapper(MAXModelWrapper):
             # iterate through data and get sentence tokens
             words = []
 
+            pp_start_time = timeit.default_timer()
             for sentence in input_data:
                 words_raw = re.split(self.pat, sentence)
                 words_raw = [w.strip() for w in words_raw]  # strip whitespace
@@ -156,10 +160,12 @@ class ModelWrapper(MAXModelWrapper):
             # pad sentence
             # print('batch words', words)
             word_ids_arr, char_ids_arr = self.inter_process(words)
+            pp_elapsed_time.append(timeit.default_timer() - pp_start_time)
 
         #words, word_ids_arr, char_ids_arr = self._pre_process(x)
         #print('sentence token')
         #print(words)
+            inf_start_time = timeit.default_timer()
             pred = self.sess.run(self.output_tensor, feed_dict={
                 self.word_ids_tensor: word_ids_arr,
                 self.char_ids_tensor: char_ids_arr
@@ -167,11 +173,14 @@ class ModelWrapper(MAXModelWrapper):
             labels_pred_arr = np.argmax(pred, -1)
             # print('Inside post process')
             #print(x)
-
+            inf_elapsed_time.append(timeit.default_timer() - inf_start_time)
             for r in labels_pred_arr:
                 result.append([self.id_to_tag[i] for i in r.ravel()])
         # print('final result', result)
         # print('sentence token', sentence_token)
         #labels_pred_arr = self._predict(word_ids_arr, char_ids_arr)
         #labels_pred = self._post_process(labels_pred_arr)
+
+        print('PP time', pp_elapsed_time)
+        print('inf', inf_elapsed_time)
         return result, sentence_token

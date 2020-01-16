@@ -20,6 +20,7 @@ from core.model import ModelWrapper
 from maxfw.core import MAX_API, PredictAPI, MetadataAPI
 from flask_restplus import fields
 from flask import request
+import json
 
 
 model_wrapper = ModelWrapper()
@@ -132,18 +133,30 @@ predict_response = MAX_API.model('ModelPredictResponse', {
 #         return result
 
 
-inp_text = [
-            "John lives SF here.",
-            "I ate apple.",
-            "I am a dancer and singer.",
-            "Model Asset Exchange NER model is popular than other models.",
-            "I like banana.",
-            "I ate a lot of apples.",
-            ]
+with open('/Users/ihjhuo@ibm.com/nerbatch/MAX-Named-Entity-Tagger/sire_data_test.json', 'r') as myfile:
+    data = myfile.read()
+# parse file
+watson_test_data_obj = json.loads(data)
 
-text = inp_text
-print(text)
-entities, terms = model_wrapper.predict(text)
+input_sentences = []
+for i in range(len(watson_test_data_obj)):
+    input_sentences.append(watson_test_data_obj[i]['text'])
+    if len(input_sentences) == 100:
+        break
+
+# inp_text = [
+#             "John lives SF here.",
+#             "I ate apple.",
+#             "I am a dancer and singer.",
+#             "Model Asset Exchange NER model is popular than other models.",
+#             "I like banana.",
+#             "I ate a lot of apples.",
+            # ]
+
+# text = inp_text
+# print(text)
+
+entities, terms = model_wrapper.predict(input_sentences)
 model_pred = {
             'tags': entities,
             'terms': terms
