@@ -163,18 +163,30 @@ def _build_model(embedding_weights, char_bidirectional=False, concat_bidirection
     model = Model([word_emb_input, char_emb_input], x)
     return model
 
+# define run_options and run_metadata
+run_options = tf.RunOptions(trace_level=tf.RunOptions.FULL_TRACE)
+run_metadata = tf.RunMetadata() 
 
 # === Build model ===
 
 model = _build_model(embeddings)
 # Optimizer: Adam shows best results
 adam_op = Adam(lr=lr, decay=lr_decay)
-model.compile(optimizer=adam_op, loss='categorical_crossentropy', metrics=['accuracy'])
+model.compile(optimizer=adam_op, options=run_options, run_metadata=run_metadata 
+    , loss='categorical_crossentropy', metrics=['accuracy'])
 
 # train model
 print('Beginning model fitting...')
 model.fit([word_ids_arr, char_ids_arr], labels_arr_one_hot, batch_size=batch_size, epochs=nepochs,
           validation_data=([word_ids_arr_valid, char_ids_arr_valid], labels_arr_one_hot_valid))
+
+
+# save `run_metadate` in timeline.json
+from tensorflow.python.client import timeline
+tl = timeline.Timeline(run_metadata.step_stats)
+ctf = tl.generate_chrome_trace_format()
+with open(os.path.join(FLAGS.tb_logdir, 'timeline.json'), 'w') as f:
+    f.write(ctf)
 
 # Export keras model to TF SavedModel format
 print('Exporting SavedModel to {}'.format(result_dir))
