@@ -13,12 +13,14 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
-
+import sys
+sys.path.append('/home/jhuo/runtimes')
 from core.model import ModelWrapper
 
 from maxfw.core import MAX_API, PredictAPI, MetadataAPI
 from flask_restplus import fields
 from flask import request
+import json
 
 
 model_wrapper = ModelWrapper()
@@ -75,12 +77,17 @@ class ModelLabelsAPI(MetadataAPI):
 # === Predict API
 
 
-input_example = 'John lives in Brussels and works for the EU'
+input_example = ['John lives SF here.', 'I ate apple.', 'I am a dancer and singer.', 'Model Asset Exchange NER model is popular than other models.', 'I like banana.', 'I ate a lot of apples.']
 ent_example = ['I-PER', 'O', 'O', 'I-LOC', 'O', 'O', 'O', 'O', 'I-ORG']
 term_example = ['John', 'lives', 'in', 'Brussels', 'and', 'works', 'for', 'the', 'EU']
 
+# model_input = MAX_API.model('ModelInput', {
+#     'text': fields.String(required=True, description='Text for which to predict entities', example=input_example)
+# })
+
 model_input = MAX_API.model('ModelInput', {
-    'text': fields.String(required=True, description='Text for which to predict entities', example=input_example)
+    'text': fields.List(fields.String, required=True,
+                        description='Text for which to predict entities', example=input_example)
 })
 
 model_prediction = MAX_API.model('ModelPrediction', {
@@ -97,23 +104,87 @@ predict_response = MAX_API.model('ModelPredictResponse', {
 })
 
 
-class ModelPredictAPI(PredictAPI):
+# class ModelPredictAPI(PredictAPI):
+#
+#     @MAX_API.doc('predict')
+#     @MAX_API.expect(model_input)
+#     @MAX_API.marshal_with(predict_response)
+#     def post(self):
+#         '''Make a prediction given input data'''
+#         result = {'status': 'error'}
+#
+#         inp_text = [
+#             "John lives SF here.",
+#             "I ate apple.",
+#             "I am a dancer and singer.",
+#             "Model Asset Exchange NER model is popular than other models."
+#             ]
+#         #j = request.get_json()
+#         text = inp_text
+#         print(text)
+#         entities, terms = model_wrapper.predict(text)
+#         model_pred = {
+#             'tags': entities,
+#             'terms': terms
+#         }
+#         result['prediction'] = model_pred
+#         result['status'] = 'ok'
+#
+#         return result
 
-    @MAX_API.doc('predict')
-    @MAX_API.expect(model_input)
-    @MAX_API.marshal_with(predict_response)
-    def post(self):
-        '''Make a prediction given input data'''
-        result = {'status': 'error'}
 
-        j = request.get_json()
-        text = j['text']
-        entities, terms = model_wrapper.predict(text)
-        model_pred = {
+# with open('/Users/ihjhuo@ibm.com/nerbatch/MAX-Named-Entity-Tagger/en-50k-200.json', 'r') as myfile:
+#     data = myfile.read()
+# watson_test_data_obj = json.loads(data)
+
+# watson_test_data_obj = [] 
+# for line in open('en-50k-200.json', 'r'):
+#    watson_test_data_obj.append(json.loads(line))   
+
+# input_sentences = []
+# for i in range(len(watson_test_data_obj)):
+#    input_sentences.append(watson_test_data_obj[i]['text'])
+
+### all doc sentences of en50-200
+watson_test_data_obj = []
+for line in open('en-50k-200.json', 'r'):
+    line_data = json.loads(line)
+    split_sentences = line_data['text'].split('\n')
+
+    testing_sentences = []
+    for spt_sent in split_sentences:
+        if len(spt_sent) <= 3:
+            continue
+        else:
+            testing_sentences.append(spt_sent)
+    print('*********')
+    print(len(testing_sentences))
+    watson_test_data_obj.extend(testing_sentences)
+
+
+# inp_text = [
+#             "John lives SF here.",
+#             "I ate apple.",
+#             "I am a dancer and singer.",
+#             "Model Asset Exchange NER model is popular than other models.",
+#             "I like banana.",
+#             "I ate a lot of apples.",
+            # ]
+
+# text = inp_text
+# print(text)
+
+print('++++=====')
+total_char = 0
+for c_char in range(len(watson_test_data_obj)):
+    number_tmp = len(watson_test_data_obj[c_char])
+    total_char += number_tmp
+print(total_char)
+entities, terms, total_inftime = model_wrapper.predict(watson_test_data_obj)
+model_pred = {
             'tags': entities,
-            'terms': terms
+            'terms': terms,
+            'total_inftime':total_inftime
         }
-        result['prediction'] = model_pred
-        result['status'] = 'ok'
-
-        return result
+# print(model_pred)
+print('throughput:',total_char/total_inftime)
