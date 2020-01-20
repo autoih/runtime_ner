@@ -135,13 +135,15 @@ class ModelWrapper(MAXModelWrapper):
     #     })
     #     return np.argmax(pred, -1)
 
-    def _predict(self, x, predict_batch_size=10):
+    def _predict(self, x, predict_batch_size=32):
         # print('---- Test -----')
         # print(x)
         sentence_token = []
         result = []
         pp_elapsed_time = []
         inf_elapsed_time = []
+        total_inf_time = 0
+        each_inf_time = 0
         for i in range(0, len(x), predict_batch_size):
             # print(i)
             # Accumulate data
@@ -171,17 +173,20 @@ class ModelWrapper(MAXModelWrapper):
                 self.word_ids_tensor: word_ids_arr,
                 self.char_ids_tensor: char_ids_arr
             })
+            
             labels_pred_arr = np.argmax(pred, -1)
             # print('Inside post process')
             #print(x)
-            inf_elapsed_time.append(timeit.default_timer() - inf_start_time)
+            each_inf_time = timeit.default_timer() - inf_start_time
+            inf_elapsed_time.append(each_inf_time)
             for r in labels_pred_arr:
                 result.append([self.id_to_tag[i] for i in r.ravel()])
+            total_inf_time += each_inf_time
         # print('final result', result)
         # print('sentence token', sentence_token)
         #labels_pred_arr = self._predict(word_ids_arr, char_ids_arr)
         #labels_pred = self._post_process(labels_pred_arr)
-
+        print('---------++++++++++++++++++-------------------')
         print('PP time', pp_elapsed_time)
         print('inf', inf_elapsed_time)
 
@@ -189,10 +194,11 @@ class ModelWrapper(MAXModelWrapper):
         inf_elapsed_time.append(sum(inf_elapsed_time)/len(inf_elapsed_time))
 
         df = pd.DataFrame({'tokenization time': pp_elapsed_time,
-                           'inference time': inf_elapsed_time})
+                           'inference time': inf_elapsed_time, 
+                           'total inf time': total_inf_time})
 
-        df.to_csv('en-50k-200_bts10.csv')
+        df.to_csv('en-50k-200_bts32_3.csv')
+        print('+++++++')
+        print(total_inf_time)
 
-        print(len(inf_elapsed_time))
-
-        return result, sentence_token
+        return result, sentence_token,total_inf_time

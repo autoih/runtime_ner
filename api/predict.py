@@ -14,7 +14,7 @@
 # limitations under the License.
 #
 import sys
-sys.path.append('/Users/ihjhuo@ibm.com/nerbatch/MAX-Named-Entity-Tagger')
+sys.path.append('/home/jhuo/runtimes')
 from core.model import ModelWrapper
 
 from maxfw.core import MAX_API, PredictAPI, MetadataAPI
@@ -137,16 +137,30 @@ predict_response = MAX_API.model('ModelPredictResponse', {
 #     data = myfile.read()
 # watson_test_data_obj = json.loads(data)
 
-watson_test_data_obj = [] 
-for line in open('en-50k-200.json', 'r'):
-    watson_test_data_obj.append(json.loads(line))
-    
+# watson_test_data_obj = [] 
+# for line in open('en-50k-200.json', 'r'):
+#    watson_test_data_obj.append(json.loads(line))   
 
-input_sentences = []
-for i in range(len(watson_test_data_obj)):
-    input_sentences.append(watson_test_data_obj[i]['text'])
-    # if len(input_sentences) == 100:
-    #     break
+# input_sentences = []
+# for i in range(len(watson_test_data_obj)):
+#    input_sentences.append(watson_test_data_obj[i]['text'])
+
+### all doc sentences of en50-200
+watson_test_data_obj = []
+for line in open('en-50k-200.json', 'r'):
+    line_data = json.loads(line)
+    split_sentences = line_data['text'].split('\n')
+
+    testing_sentences = []
+    for spt_sent in split_sentences:
+        if len(spt_sent) <= 3:
+            continue
+        else:
+            testing_sentences.append(spt_sent)
+    print('*********')
+    print(len(testing_sentences))
+    watson_test_data_obj.extend(testing_sentences)
+
 
 # inp_text = [
 #             "John lives SF here.",
@@ -160,10 +174,17 @@ for i in range(len(watson_test_data_obj)):
 # text = inp_text
 # print(text)
 
-entities, terms = model_wrapper.predict(input_sentences)
+print('++++=====')
+total_char = 0
+for c_char in range(len(watson_test_data_obj)):
+    number_tmp = len(watson_test_data_obj[c_char])
+    total_char += number_tmp
+print(total_char)
+entities, terms, total_inftime = model_wrapper.predict(watson_test_data_obj)
 model_pred = {
             'tags': entities,
-            'terms': terms
+            'terms': terms,
+            'total_inftime':total_inftime
         }
-print(model_pred)
-
+# print(model_pred)
+print('throughput:',total_char/total_inftime)
