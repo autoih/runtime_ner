@@ -26,6 +26,8 @@ from core.utils import get_processing_word, load_vocab, pad_sequences
 from config import DEFAULT_MODEL_PATH, MODEL_META_DATA as model_meta
 import timeit
 import pandas as pd
+import mem_util
+from tensorflow.python.client import timeline
 
 logger = logging.getLogger()
 
@@ -144,6 +146,11 @@ class ModelWrapper(MAXModelWrapper):
         inf_elapsed_time = []
         total_inf_time = 0
         each_inf_time = 0
+
+        # define run_options and run_metadata
+        run_options = tf.RunOptions(trace_level=tf.RunOptions.FULL_TRACE)
+        run_metadata = tf.RunMetadata() 
+
         for i in range(0, len(x), predict_batch_size):
             # print(i)
             # Accumulate data
@@ -172,9 +179,23 @@ class ModelWrapper(MAXModelWrapper):
             pred = self.sess.run(self.output_tensor, feed_dict={
                 self.word_ids_tensor: word_ids_arr,
                 self.char_ids_tensor: char_ids_arr
-            })
-            
+            }, options=run_options,
+            run_metadata=run_metadata)
+        
             labels_pred_arr = np.argmax(pred, -1)
+
+            ### HERE IS MEMORY PEAK EVALUATION ####
+            # log the peak memory consumed by the model
+            peak_memory = mem_util.peak_memory(run_metadata)
+            print("The peak memory consumed by the BiLSTM model: {} bytes".format(peak_memory))
+            # create the Timeline object, and write it to a json file
+            fetched_timeline = timeline.Timeline(run_metadata.step_stats)
+            chrome_trace = fetched_timeline.generate_chrome_trace_format()
+
+            with open('profiling_trace.json', 'w') as file_handle:
+                file_handle.write(chrome_trace)
+            ### HERE IS MEMORY PEAK EVALUATION ####
+
             # print('Inside post process')
             #print(x)
             each_inf_time = timeit.default_timer() - inf_start_time
