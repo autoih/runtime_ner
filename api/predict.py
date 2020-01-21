@@ -14,14 +14,13 @@
 # limitations under the License.
 #
 import sys
-sys.path.append('/home/jhuo/runtimes')
+sys.path.append('/home/jhuo/runtime_ner')
 from core.model import ModelWrapper
 
 from maxfw.core import MAX_API, PredictAPI, MetadataAPI
 from flask_restplus import fields
 from flask import request
 import json
-
 
 model_wrapper = ModelWrapper()
 

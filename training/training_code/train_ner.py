@@ -163,7 +163,6 @@ def _build_model(embedding_weights, char_bidirectional=False, concat_bidirection
     model = Model([word_emb_input, char_emb_input], x)
     return model
 
-
 # === Build model ===
 
 model = _build_model(embeddings)
