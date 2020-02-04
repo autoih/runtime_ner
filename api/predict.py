@@ -14,13 +14,16 @@
 # limitations under the License.
 #
 import sys
-sys.path.append('/home/jhuo/runtime_ner')
+sys.path.append('/home/ihong/evalmaxner')
 from core.model import ModelWrapper
 
 from maxfw.core import MAX_API, PredictAPI, MetadataAPI
 from flask_restplus import fields
 from flask import request
 import json
+
+import csv
+import re
 
 model_wrapper = ModelWrapper()
 
@@ -144,46 +147,71 @@ predict_response = MAX_API.model('ModelPredictResponse', {
 # for i in range(len(watson_test_data_obj)):
 #    input_sentences.append(watson_test_data_obj[i]['text'])
 
+
 ### all doc sentences of en50-200
 watson_test_data_obj = []
-for line in open('en-50k-200.json', 'r'):
-    line_data = json.loads(line)
-    split_sentences = line_data['text'].split('\n')
 
-    testing_sentences = []
-    for spt_sent in split_sentences:
-        if len(spt_sent) <= 3:
-            continue
-        else:
-            testing_sentences.append(spt_sent)
-    print('*********')
-    print(len(testing_sentences))
-    watson_test_data_obj.extend(testing_sentences)
+with open('en-50k-200.json_tokens.csv') as csvfile:    
+    readCSV = csv.reader(csvfile, delimiter=',')
+    for row in readCSV:
+        lgth_row = len (row)
+        for row_idx in range(lgth_row):
+            if len(row[row_idx]) > 3 :
+                # print('row single:', row[row_idx])
+                testing_sentences = ""
+             
+                # words = row[row_idx].strip('][').split(', ') 
+                words = [f[1:-1] for f in re.findall("'.+?'", row[row_idx])]
+                
+                # print('word', words)
+                # print('word', type(words))
+                # print('word', len(words))
+                # print('word', words[0])
+                if len(words) == 0: 
+                    continue
+                for spt_sent in words:
+                    testing_sentences = testing_sentences + spt_sent + " "
+                    # testing_sentences = testing_sentences + spt_sent.strip('\'') + " "
+
+                # print('sentence:', testing_sentences)
+                # print('sentence:', len(testing_sentences))
+                watson_test_data_obj.append(testing_sentences)
+
+############################################################
 
 
-# inp_text = [
-#             "John lives SF here.",
-#             "I ate apple.",
-#             "I am a dancer and singer.",
-#             "Model Asset Exchange NER model is popular than other models.",
-#             "I like banana.",
-#             "I ate a lot of apples.",
-            # ]
+# ### all doc sentences of en50-200
+# watson_test_data_obj = []
+# # for line in open('en-50k-200.json_tokens.csv', 'r'):
+# for line in open('en-50k-200.json', 'r'):
+#     line_data = json.loads(line)
+#     split_sentences = line_data['text'].split('\n')
 
-# text = inp_text
-# print(text)
+#     testing_sentences = []
+#     for spt_sent in split_sentences:
+#         if len(spt_sent) <= 3:
+#             continue
+#         else:
+#             testing_sentences.append(spt_sent)
+#     print('*********')
+#     print(len(testing_sentences))
+#     watson_test_data_obj.extend(testing_sentences)
 
-print('++++=====')
+print('!!!!!!!')
+print(len(watson_test_data_obj))
+
+
+
 total_char = 0
 for c_char in range(len(watson_test_data_obj)):
     number_tmp = len(watson_test_data_obj[c_char])
     total_char += number_tmp
-print(total_char)
+print('TOTAL CHARACHERS:', total_char)
 entities, terms, total_inftime = model_wrapper.predict(watson_test_data_obj)
 model_pred = {
             'tags': entities,
             'terms': terms,
             'total_inftime':total_inftime
         }
-# print(model_pred)
-print('throughput:',total_char/total_inftime)
+
+# print('throughput:',total_char/total_inftime)
