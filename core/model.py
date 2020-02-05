@@ -21,7 +21,6 @@ import re
 import tensorflow as tf
 from tensorflow.python.saved_model import tag_constants
 
-import sys
 import logging
 from core.utils import get_processing_word, load_vocab, pad_sequences
 from config import DEFAULT_MODEL_PATH, MODEL_META_DATA as model_meta
@@ -139,35 +138,24 @@ class ModelWrapper(MAXModelWrapper):
     #     return np.argmax(pred, -1)
 
     def _predict(self, x, predict_batch_size=0):
+        # print('---- Test -----')
+        # print(x)
+        sentence_token = []
+        result = []
+        pp_elapsed_time = []
+        inf_elapsed_time = []
+        total_inf_time = 0
+        each_inf_time = 0
 
-        # sentence_token = []
-        # result = []
-        # pp_elapsed_time = []
-        # inf_elapsed_time = []
-        # total_inf_time = 0
-        # each_inf_time = 0
+        predict_batch_size = [ 2**j for j in range(5,7+1) ]
 
-        # predict_batch_size = [ 2**j for j in range(5,7+1) ]
-        
-        predict_batch_size = [ 32 ]
-        
         for k in range(len(predict_batch_size)):
-
-            sentence_token = []
-            result = []
-            pp_elapsed_time = []
-            inf_elapsed_time = []
-            total_inf_time = 0
-            each_inf_time = 0
-
-            print('the iteration bt size: ', predict_batch_size[k])
-
             # define run_options and run_metadata
             run_options = tf.RunOptions(trace_level=tf.RunOptions.FULL_TRACE)
             run_metadata = tf.RunMetadata() 
             
             for i in range(0, len(x), predict_batch_size[k]):
-                
+
                 # print(i)
                 # Accumulate data
                 input_data = x[i:i + predict_batch_size[k]]
@@ -192,26 +180,25 @@ class ModelWrapper(MAXModelWrapper):
             #print('sentence token')
             #print(words)
                 inf_start_time = timeit.default_timer()
-
-                ## HERE IS MEMORY PEAK EVALUATION ####
-
-                pred = self.sess.run(self.output_tensor, feed_dict={
-                    self.word_ids_tensor: word_ids_arr,
-                    self.char_ids_tensor: char_ids_arr
-                }, options=run_options,
-                run_metadata=run_metadata)
-            
+                
+                # ### HERE IS MEMORY PEAK EVALUATION ####
                 # pred = self.sess.run(self.output_tensor, feed_dict={
                 #     self.word_ids_tensor: word_ids_arr,
                 #     self.char_ids_tensor: char_ids_arr
-                # })
+                # }, options=run_options,
+                # run_metadata=run_metadata)
+            
+                pred = self.sess.run(self.output_tensor, feed_dict={
+                    self.word_ids_tensor: word_ids_arr,
+                    self.char_ids_tensor: char_ids_arr
+                })
 
-                ## HERE IS MEMORY PEAK EVALUATION ####
+                ### HERE IS MEMORY PEAK EVALUATION ####
                 # log the peak memory consumed by the model
                 peak_memory = mem_util.peak_memory(run_metadata)
                 print("The peak memory consumed by the BiLSTM model: {} bytes".format(peak_memory))
                 
-                mem_filename = 'memory_peak_Feb4_bts_' + str(predict_batch_size[k]) + '.txt'
+                mem_filename = 'memory_peak_Feb3rd_bts_' + str(predict_batch_size[k]) + '.txt'
                 with open(mem_filename, 'a') as fd:
                     fd.write(str(peak_memory['/cpu:0'])+'\n')
 
@@ -220,7 +207,7 @@ class ModelWrapper(MAXModelWrapper):
                 chrome_trace = fetched_timeline.generate_chrome_trace_format()
                 # with open('profiling_trace_bts32.json', 'w') as file_handle:
                 #     file_handle.write(chrome_trace)
-                ## HERE IS MEMORY PEAK EVALUATION ####
+                ### HERE IS MEMORY PEAK EVALUATION ####
 
                 labels_pred_arr = np.argmax(pred, -1)
                 # print('Inside post process')
@@ -230,29 +217,34 @@ class ModelWrapper(MAXModelWrapper):
                 for r in labels_pred_arr:
                     result.append([self.id_to_tag[i] for i in r.ravel()])
                 total_inf_time += each_inf_time
-
             # print('final result', result)
             # print('sentence token', sentence_token)
-            labels_pred_arr = self._predict(word_ids_arr, char_ids_arr)
-            labels_pred = self._post_process(labels_pred_arr)
+            #labels_pred_arr = self._predict(word_ids_arr, char_ids_arr)
+            #labels_pred = self._post_process(labels_pred_arr)
+
+
 
             # print('---------++++++++++++++++++-------------------')
             # print('PP time', pp_elapsed_time)
             # print('inf', inf_elapsed_time)
 
-            # pp_elapsed_time.append(sum(pp_elapsed_time)/len(pp_elapsed_time))
-            # inf_elapsed_time.append(sum(inf_elapsed_time)/len(inf_elapsed_time))
 
-            # df = pd.DataFrame({'tokenization time': pp_elapsed_time,
-            #                 'inference time': inf_elapsed_time, 
-            #                 'total inf time': total_inf_time})
+        # df2 = pd.DataFrame({'memory peak': peak_memory_all})
+        # df2.to_csv('en-50k-200_bts32_mempeak.csv')
 
 
-            # InferTime_filename = 'InferTime_Feb4_bts_' + str(predict_batch_size[k]) + '.csv'
-            # df.to_csv(InferTime_filename)
+            pp_elapsed_time.append(sum(pp_elapsed_time)/len(pp_elapsed_time))
+            inf_elapsed_time.append(sum(inf_elapsed_time)/len(inf_elapsed_time))
+
+            df = pd.DataFrame({'tokenization time': pp_elapsed_time,
+                            'inference time': inf_elapsed_time, 
+                            'total inf time': total_inf_time})
+
+            InferTime_filename = 'InferTime_bts_' + str(predict_batch_size[k]) + '.csv'
+            df.to_csv(InferTime_filename)
             print('+++++++')
             print(total_inf_time)
             print('==========')
             print('predict_batch size', predict_batch_size[k])
 
-        return result, sentence_token,total_inf_time
+            return result, sentence_token,total_inf_time

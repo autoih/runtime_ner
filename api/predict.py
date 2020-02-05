@@ -21,7 +21,6 @@ from maxfw.core import MAX_API, PredictAPI, MetadataAPI
 from flask_restplus import fields
 from flask import request
 import json
-
 import csv
 import re
 
@@ -147,7 +146,6 @@ predict_response = MAX_API.model('ModelPredictResponse', {
 # for i in range(len(watson_test_data_obj)):
 #    input_sentences.append(watson_test_data_obj[i]['text'])
 
-
 ### all doc sentences of en50-200
 watson_test_data_obj = []
 
@@ -156,51 +154,76 @@ with open('en-50k-200.json_tokens.csv') as csvfile:
     for row in readCSV:
         lgth_row = len (row)
         for row_idx in range(lgth_row):
-            if len(row[row_idx]) > 3 :
+            if len(row[row_idx]) > 0 :
                 # print('row single:', row[row_idx])
                 testing_sentences = ""
-             
                 # words = row[row_idx].strip('][').split(', ') 
+
                 words = [f[1:-1] for f in re.findall("'.+?'", row[row_idx])]
-                
+
+                if len(words) == 0:
+                    continue
                 # print('word', words)
                 # print('word', type(words))
                 # print('word', len(words))
                 # print('word', words[0])
-                if len(words) == 0: 
-                    continue
+                
                 for spt_sent in words:
                     testing_sentences = testing_sentences + spt_sent + " "
-                    # testing_sentences = testing_sentences + spt_sent.strip('\'') + " "
 
                 # print('sentence:', testing_sentences)
                 # print('sentence:', len(testing_sentences))
                 watson_test_data_obj.append(testing_sentences)
 
+        # print('a:',watson_test_data_obj)
+        # print('a:',watson_test_data_obj[0])
+        # print('a:',watson_test_data_obj[1])
+        # print('a:',watson_test_data_obj[-2])
+        # print('a:',watson_test_data_obj[-1])
+        # sys.exit()
+
 ############################################################
-
-
-# ### all doc sentences of en50-200
-# watson_test_data_obj = []
-# # for line in open('en-50k-200.json_tokens.csv', 'r'):
 # for line in open('en-50k-200.json', 'r'):
 #     line_data = json.loads(line)
 #     split_sentences = line_data['text'].split('\n')
+
+#     print('HRE IS SPLIT SENTENCE: ', type(split_sentences))
+#     print('HRE IS SPLIT SENTENCE: ', len(split_sentences))
+#     print('HRE IS SPLIT SENTENCE: ', split_sentences[0])
+#     print('HRE IS SPLIT SENTENCE: ', split_sentences[1])
+#     print('HRE IS SPLIT SENTENCE: ', type(split_sentences[1]))
 
 #     testing_sentences = []
 #     for spt_sent in split_sentences:
 #         if len(spt_sent) <= 3:
 #             continue
 #         else:
+#             print("every word:", spt_sent)
 #             testing_sentences.append(spt_sent)
-#     print('*********')
-#     print(len(testing_sentences))
+#         print('here is: ', testing_sentences)
+
 #     watson_test_data_obj.extend(testing_sentences)
+#     # print('watson test: ', type(watson_test_data_obj))
+#     # print('watson test: ', len(watson_test_data_obj))
+#     # print('watson test: ', type(watson_test_data_obj[-1]))
+#     print('watson test: ', watson_test_data_obj[0])
+#     print('watson test: ', watson_test_data_obj[1])
+#     print('watson test: ', watson_test_data_obj[-2])
+#     print('watson test: ', watson_test_data_obj[-1])
+#     sys.exit()
+#################################################################
 
-print('!!!!!!!')
-print(len(watson_test_data_obj))
+# inp_text = [
+#             "John lives SF here.",
+#             "I ate apple.",
+#             "I am a dancer and singer.",
+#             "Model Asset Exchange NER model is popular than other models.",
+#             "I like banana.",
+#             "I ate a lot of apples.",
+            # ]
 
-
+# text = inp_text
+# print(text)
 
 total_char = 0
 for c_char in range(len(watson_test_data_obj)):
@@ -213,5 +236,4 @@ model_pred = {
             'terms': terms,
             'total_inftime':total_inftime
         }
-
-# print('throughput:',total_char/total_inftime)
+print('throughput:',total_char/total_inftime)
