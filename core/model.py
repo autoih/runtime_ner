@@ -28,6 +28,7 @@ import timeit
 import pandas as pd
 import mem_util
 from tensorflow.python.client import timeline
+import sys
 
 logger = logging.getLogger()
 
@@ -135,7 +136,8 @@ class ModelWrapper(MAXModelWrapper):
         # total_inf_time = 0
         # each_inf_time = 0
         glob_empty = 0
-        predict_batch_size = [ 2**j for j in range(5,5+1) ]
+        predict_batch_size = [ 2**j for j in range(3,10+1) ]
+        total_inference_time_list = []
 
         for k in range(len(predict_batch_size)):
 
@@ -144,6 +146,18 @@ class ModelWrapper(MAXModelWrapper):
             pp_elapsed_time = []
             inf_elapsed_time = []
             total_inf_time = 0
+            sentce_length = []
+            ind_sort_sent = []
+
+            for len_x in range(len(x)):
+                sentce_length.append(len(x[len_x]))
+
+            ind_sort_sent = np.argsort(sentce_length)
+            new_index_order = ind_sort_sent.tolist()
+            
+            xx = []
+            for x_ind in range (len(new_index_order)):
+                xx.append(x[new_index_order[x_ind]])
 
             # ##################HERE IS MEMORY PEAK EVALUATION###########################
             # ######define run_options and run_metadata
@@ -151,7 +165,7 @@ class ModelWrapper(MAXModelWrapper):
             # run_metadata = tf.RunMetadata() 
             # ##################HERE IS MEMORY PEAK EVALUATION###########################
             
-            for i in range(0, len(x), predict_batch_size[k]):
+            for i in range(0, len(xx), predict_batch_size[k]):
                 #### x: whole documents with entire sentences
                 #### x: list of many sentences
                 #### x[0]: string
@@ -161,7 +175,7 @@ class ModelWrapper(MAXModelWrapper):
 
                 # Accumulate data
                 input_data =[]
-                input_data = x[i:i + predict_batch_size[k]]
+                input_data = xx[i:i + predict_batch_size[k]]
                 # iterate through data and get sentence tokens
                 words = []
 
@@ -254,12 +268,15 @@ class ModelWrapper(MAXModelWrapper):
                             'inference time': inf_elapsed_time, 
                             'total inf time': total_inf_time})
 
-            InferTime_filename = 'Inference_Time_bts_' + str(predict_batch_size[k]) + '.csv'
+            InferTime_filename = '3Sorted_Inference_Time_bts_' + str(predict_batch_size[k]) + '.csv'
             df.to_csv(InferTime_filename)
             print('+++++++')
             print(total_inf_time)
             print('==========')
             print('predict_batch size', predict_batch_size[k])
             print('global empty word', glob_empty)
-
-        return result,total_inf_time
+        
+            total_inference_time_list.append(total_inf_time)
+            print('all batch size inference time', total_inference_time_list)
+        
+        return result, total_inf_time

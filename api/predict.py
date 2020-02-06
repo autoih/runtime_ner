@@ -135,67 +135,98 @@ predict_response = MAX_API.model('ModelPredictResponse', {
 
 
 ### all doc sentences of en50-200
+###########################################################
 watson_test_data_obj = []
 
-with open('en-50k-200.json_tokens.csv') as csvfile:    
-    readCSV = csv.reader(csvfile, delimiter=',')
-    for row in readCSV:
-        lgth_row = len (row)
-        for row_idx in range(lgth_row):
-            # if len(row[row_idx]) >= 3 :
-            # print('row single:', row[row_idx])
-            # words = row[row_idx].strip('][').split(', ') 
+def extract_tokens(csv_file):
+        def extract_token(sent, regex = '(\|.*?\|)+'):
+            group = re.findall(regex, sent)
+            tokens = [token[1:-1] for token in group]
+            return tokens
+        token_docs = []
+        with open(csv_file) as csvfile:    
+            csv_reader = csv.reader(csvfile, delimiter=',')
+            for row in csv_reader:
+                token_doc = []
+                for idx in range(len(row)):
+                    sent = row[idx]
+                    tokens = extract_token(sent)
+                    token_doc.append(tokens)
+                token_docs.append(token_doc)
+        return token_docs
 
-            #### No need to create a sentence ####
-            # testing_sentences = ""
-            #### No need to create a sentence ####
-            tmp =row[row_idx][:-1].split(',')
-            words = [f[2:-1] for f in tmp]
-            # words = [f[1:-1] for f in re.findall("'.+?'", row[row_idx])]                
-            #### words[0] => "\'" ####
-            #### words[0] => str ####
-            #### words => a list of strings ####
+tokenlist = extract_tokens('en-50k-200.json_tokensOR.csv')
 
-            # if len(words) == 0:
-            #     continue     
+for j in tokenlist:
+    for k in j:
+        watson_test_data_obj.append(k)
+###########################################################
 
-            #### No need to create a sentence ####
-            # for spt_sent in words:
-            #     testing_sentences = testing_sentences + spt_sent + " "
-            # watson_test_data_obj.append(testing_sentences)
-            #### No need to create a sentence ####
 
-            watson_test_data_obj.append(words)
 
-############################################################
-# for line in open('en-50k-200.json', 'r'):
-#     line_data = json.loads(line)
-#     split_sentences = line_data['text'].split('\n')
+###########################################################
+# watson_test_data_obj = []
+# with open('en-50k-200.json_tokens.csv') as csvfile:    
+#     readCSV = csv.reader(csvfile, delimiter=',')
+#     for row in readCSV:
+#         lgth_row = len (row)
+#         for row_idx in range(lgth_row):
+#             # if len(row[row_idx]) >= 3 :
+#             # print('row single:', row[row_idx])
+#             # words = row[row_idx].strip('][').split(', ') 
 
-#     print('HRE IS SPLIT SENTENCE: ', type(split_sentences))
-#     print('HRE IS SPLIT SENTENCE: ', len(split_sentences))
-#     print('HRE IS SPLIT SENTENCE: ', split_sentences[0])
-#     print('HRE IS SPLIT SENTENCE: ', split_sentences[1])
-#     print('HRE IS SPLIT SENTENCE: ', type(split_sentences[1]))
+#             #### No need to create a sentence ####
+#             # testing_sentences = ""
+#             #### No need to create a sentence ####
+#             tmp =row[row_idx][:-1].split(',')
+#             words = [f[2:-1] for f in tmp]
+#             # words = [f[1:-1] for f in re.findall("'.+?'", row[row_idx])]                
+#             #### words[0] => "\'" ####
+#             #### words[0] => str ####
+#             #### words => a list of strings ####
 
-#     testing_sentences = []
-#     for spt_sent in split_sentences:
-#         if len(spt_sent) <= 3:
-#             continue
-#         else:
-#             print("every word:", spt_sent)
-#             testing_sentences.append(spt_sent)
-#         print('here is: ', testing_sentences)
+#             # if len(words) == 0:
+#             #     continue     
 
-#     watson_test_data_obj.extend(testing_sentences)
-#     # print('watson test: ', type(watson_test_data_obj))
-#     # print('watson test: ', len(watson_test_data_obj))
-#     # print('watson test: ', type(watson_test_data_obj[-1]))
-#     print('watson test: ', watson_test_data_obj[0])
-#     print('watson test: ', watson_test_data_obj[1])
-#     print('watson test: ', watson_test_data_obj[-2])
-#     print('watson test: ', watson_test_data_obj[-1])
-#     sys.exit()
+#             #### No need to create a sentence ####
+#             # for spt_sent in words:
+#             #     testing_sentences = testing_sentences + spt_sent + " "
+#             # watson_test_data_obj.append(testing_sentences)
+#             #### No need to create a sentence ####
+
+#             watson_test_data_obj.append(words)
+###########################################################
+
+
+# ############################################################
+# # for line in open('en-50k-200.json', 'r'):
+# #     line_data = json.loads(line)
+# #     split_sentences = line_data['text'].split('\n')
+
+# #     print('HRE IS SPLIT SENTENCE: ', type(split_sentences))
+# #     print('HRE IS SPLIT SENTENCE: ', len(split_sentences))
+# #     print('HRE IS SPLIT SENTENCE: ', split_sentences[0])
+# #     print('HRE IS SPLIT SENTENCE: ', split_sentences[1])
+# #     print('HRE IS SPLIT SENTENCE: ', type(split_sentences[1]))
+
+# #     testing_sentences = []
+# #     for spt_sent in split_sentences:
+# #         if len(spt_sent) <= 3:
+# #             continue
+# #         else:
+# #             print("every word:", spt_sent)
+# #             testing_sentences.append(spt_sent)
+# #         print('here is: ', testing_sentences)
+
+# #     watson_test_data_obj.extend(testing_sentences)
+# #     # print('watson test: ', type(watson_test_data_obj))
+# #     # print('watson test: ', len(watson_test_data_obj))
+# #     # print('watson test: ', type(watson_test_data_obj[-1]))
+# #     print('watson test: ', watson_test_data_obj[0])
+# #     print('watson test: ', watson_test_data_obj[1])
+# #     print('watson test: ', watson_test_data_obj[-2])
+# #     print('watson test: ', watson_test_data_obj[-1])
+# #     sys.exit()
 #################################################################
 
 total_char = 0
