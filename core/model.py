@@ -74,27 +74,17 @@ class ModelWrapper(MAXModelWrapper):
         self.n_labels = n_tags + 1
 
     def inter_process(self, words):
-        # print('inside inter process')
-        # print(words)
-        # print('stacking process')
         word_ids = []
         char_ids = []
         for w in words:
             char_id, word_id = zip(*w)
-            # print(char_id, word_id)
             char_ids.append(char_id)
             word_ids.append(word_id)
         word_ids, _ = pad_sequences(word_ids, pad_tok=self.pad_tag)
         char_ids, _ = pad_sequences(char_ids, pad_tok=self.pad_tag, nlevels=2)
-        # print('atfer padding')
-        # print(word_ids)
-        # print(char_ids)
         word_ids_arr = np.array(word_ids)
         char_ids_arr = np.array(char_ids)
-        # print('shape of word array', word_ids_arr.shape)
-        # print('shape of char array', char_ids_arr.shape)
         return word_ids_arr, char_ids_arr
-
 
     # def _pre_process(self, x, predict_batch_size=2):
     #     print('---- Test -----')
@@ -138,113 +128,138 @@ class ModelWrapper(MAXModelWrapper):
     #     return np.argmax(pred, -1)
 
     def _predict(self, x, predict_batch_size=0):
-        # print('---- Test -----')
-        # print(x)
-        sentence_token = []
-        result = []
-        pp_elapsed_time = []
-        inf_elapsed_time = []
-        total_inf_time = 0
-        each_inf_time = 0
-
-        predict_batch_size = [ 2**j for j in range(5,7+1) ]
+        # sentence_token = []
+        # result = []
+        # pp_elapsed_time = []
+        # inf_elapsed_time = []
+        # total_inf_time = 0
+        # each_inf_time = 0
+        glob_empty = 0
+        predict_batch_size = [ 2**j for j in range(5,5+1) ]
 
         for k in range(len(predict_batch_size)):
-            # define run_options and run_metadata
-            run_options = tf.RunOptions(trace_level=tf.RunOptions.FULL_TRACE)
-            run_metadata = tf.RunMetadata() 
+
+            sentence_token = []
+            result = []
+            pp_elapsed_time = []
+            inf_elapsed_time = []
+            total_inf_time = 0
+
+            # ##################HERE IS MEMORY PEAK EVALUATION###########################
+            # ######define run_options and run_metadata
+            # run_options = tf.RunOptions(trace_level=tf.RunOptions.FULL_TRACE)
+            # run_metadata = tf.RunMetadata() 
+            # ##################HERE IS MEMORY PEAK EVALUATION###########################
             
             for i in range(0, len(x), predict_batch_size[k]):
+                #### x: whole documents with entire sentences
+                #### x: list of many sentences
+                #### x[0]: string
 
-                # print(i)
+                inf_start_time =0 
+                each_inf_time = 0
+
                 # Accumulate data
+                input_data =[]
                 input_data = x[i:i + predict_batch_size[k]]
                 # iterate through data and get sentence tokens
                 words = []
 
+                #### input_data: a list includes 32 sentences ####
+                #### input_data[0]: str ####
+                
                 pp_start_time = timeit.default_timer()
-                for sentence in input_data:
-                    words_raw = re.split(self.pat, sentence)
-                    words_raw = [w.strip() for w in words_raw]  # strip whitespace
-                    words_raw = [w for w in words_raw if w]  # keep only non-empty terms, keeping raw punctuation
+                range_batch_size = [ idx for idx in range(predict_batch_size[k])]
+                if len(input_data) < predict_batch_size[k]: 
+                    range_batch_size = [ idx for idx in range(len(input_data))]
+
+                for i_sentence in range_batch_size:
+                    # #### Using Fei data ####
+                    # words_raw = re.split(self.pat, sentence)
+                    # words_raw = [w.strip() for w in words_raw]  # strip whitespace
+                    # words_raw = [w for w in words_raw if w]  # keep only non-empty terms, keeping raw punctuation
+                    # #### Using Fei data ####
+
+                    #### words_raw should be the input from Fei's data#######
+                    #### words_raw is a list #######
+                    #### words_raw[0] is a str; ex: < OR P #####
+                    #### words is mapped to word number(ids) ######
+                    
+                    words_raw = input_data[i_sentence]
+                    if len(input_data[i_sentence]) == 0:
+                        words_raw = ['']
+                        glob_empty += 1
+                    
                     words.append([self.proc_fn(w) for w in words_raw])
+                    # sentence_token.append(words_raw)
 
-                    sentence_token.append(words_raw)
-
-                # pad sentence
-                # print('batch words', words)
+                # pad sentence          
                 word_ids_arr, char_ids_arr = self.inter_process(words)
                 pp_elapsed_time.append(timeit.default_timer() - pp_start_time)
 
-            #words, word_ids_arr, char_ids_arr = self._pre_process(x)
-            #print('sentence token')
-            #print(words)
-                inf_start_time = timeit.default_timer()
-                
-                # ### HERE IS MEMORY PEAK EVALUATION ####
-                # pred = self.sess.run(self.output_tensor, feed_dict={
-                #     self.word_ids_tensor: word_ids_arr,
-                #     self.char_ids_tensor: char_ids_arr
-                # }, options=run_options,
-                # run_metadata=run_metadata)
-            
+                inf_start_time = timeit.default_timer()     
                 pred = self.sess.run(self.output_tensor, feed_dict={
                     self.word_ids_tensor: word_ids_arr,
                     self.char_ids_tensor: char_ids_arr
                 })
 
-                ### HERE IS MEMORY PEAK EVALUATION ####
-                # log the peak memory consumed by the model
-                peak_memory = mem_util.peak_memory(run_metadata)
-                print("The peak memory consumed by the BiLSTM model: {} bytes".format(peak_memory))
+                # ##################HERE IS MEMORY PEAK EVALUATION###########################
+                # pred = self.sess.run(self.output_tensor, feed_dict={
+                #     self.word_ids_tensor: word_ids_arr,
+                #     self.char_ids_tensor: char_ids_arr
+                # }, options=run_options,
+                # run_metadata=run_metadata)
+
+                ##################HERE IS MEMORY PEAK EVALUATION###########################
+                # ########## log the peak memory consumed by the model ##########
+                # peak_memory = mem_util.peak_memory(run_metadata)
+                # print("The peak memory consumed by the BiLSTM model: {} bytes".format(peak_memory))
                 
-                mem_filename = 'memory_peak_Feb3rd_bts_' + str(predict_batch_size[k]) + '.txt'
-                with open(mem_filename, 'a') as fd:
-                    fd.write(str(peak_memory['/cpu:0'])+'\n')
 
-                # create the Timeline object, and write it to a json file
-                fetched_timeline = timeline.Timeline(run_metadata.step_stats)
-                chrome_trace = fetched_timeline.generate_chrome_trace_format()
-                # with open('profiling_trace_bts32.json', 'w') as file_handle:
-                #     file_handle.write(chrome_trace)
-                ### HERE IS MEMORY PEAK EVALUATION ####
+                # mem_filename = 'memory_peak_Feb3rd_bts_' + str(predict_batch_size[k]) + '.txt'
+                # with open(mem_filename, 'a') as fd:
+                #     fd.write(str(peak_memory['/cpu:0'])+'\n')
 
+                # ##########create the Timeline object, and write it to a json file##########
+                # fetched_timeline = timeline.Timeline(run_metadata.step_stats)
+                # chrome_trace = fetched_timeline.generate_chrome_trace_format()
+                # # with open('profiling_trace_bts32.json', 'w') as file_handle:
+                # #     file_handle.write(chrome_trace)
+                # ##########create the Timeline object, and write it to a json file##########
+                ##################HERE IS MEMORY PEAK EVALUATION###########################
+                
                 labels_pred_arr = np.argmax(pred, -1)
-                # print('Inside post process')
-                #print(x)
+                # labels_pred_arr = tf.math.argmax(pred, -1)
+
+                inf_elapsed_time.append(timeit.default_timer() - inf_start_time)
+
+                # for r in labels_pred_arr:
+                #     result.append([self.id_to_tag[i] for i in r.ravel()])
+
                 each_inf_time = timeit.default_timer() - inf_start_time
-                inf_elapsed_time.append(each_inf_time)
-                for r in labels_pred_arr:
-                    result.append([self.id_to_tag[i] for i in r.ravel()])
                 total_inf_time += each_inf_time
-            # print('final result', result)
-            # print('sentence token', sentence_token)
+
+            ############## predicted labels #######################
             #labels_pred_arr = self._predict(word_ids_arr, char_ids_arr)
             #labels_pred = self._post_process(labels_pred_arr)
+            ############## predicted labels #######################
 
+            ####### No idea why sum / len ########
+            # pp_elapsed_time.append(sum(pp_elapsed_time)/len(pp_elapsed_time))
+            # inf_elapsed_time.append(sum(inf_elapsed_time)/len(inf_elapsed_time))
+            ####### No idea why sum / len ########
 
-
-            # print('---------++++++++++++++++++-------------------')
-            # print('PP time', pp_elapsed_time)
-            # print('inf', inf_elapsed_time)
-
-
-        # df2 = pd.DataFrame({'memory peak': peak_memory_all})
-        # df2.to_csv('en-50k-200_bts32_mempeak.csv')
-
-
-            pp_elapsed_time.append(sum(pp_elapsed_time)/len(pp_elapsed_time))
-            inf_elapsed_time.append(sum(inf_elapsed_time)/len(inf_elapsed_time))
 
             df = pd.DataFrame({'tokenization time': pp_elapsed_time,
                             'inference time': inf_elapsed_time, 
                             'total inf time': total_inf_time})
 
-            InferTime_filename = 'InferTime_bts_' + str(predict_batch_size[k]) + '.csv'
+            InferTime_filename = 'Inference_Time_bts_' + str(predict_batch_size[k]) + '.csv'
             df.to_csv(InferTime_filename)
             print('+++++++')
             print(total_inf_time)
             print('==========')
             print('predict_batch size', predict_batch_size[k])
+            print('global empty word', glob_empty)
 
-            return result, sentence_token,total_inf_time
+        return result,total_inf_time

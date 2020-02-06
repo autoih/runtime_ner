@@ -134,18 +134,6 @@ predict_response = MAX_API.model('ModelPredictResponse', {
 #         return result
 
 
-# with open('/Users/ihjhuo@ibm.com/nerbatch/MAX-Named-Entity-Tagger/en-50k-200.json', 'r') as myfile:
-#     data = myfile.read()
-# watson_test_data_obj = json.loads(data)
-
-# watson_test_data_obj = [] 
-# for line in open('en-50k-200.json', 'r'):
-#    watson_test_data_obj.append(json.loads(line))   
-
-# input_sentences = []
-# for i in range(len(watson_test_data_obj)):
-#    input_sentences.append(watson_test_data_obj[i]['text'])
-
 ### all doc sentences of en50-200
 watson_test_data_obj = []
 
@@ -154,33 +142,30 @@ with open('en-50k-200.json_tokens.csv') as csvfile:
     for row in readCSV:
         lgth_row = len (row)
         for row_idx in range(lgth_row):
-            if len(row[row_idx]) > 0 :
-                # print('row single:', row[row_idx])
-                testing_sentences = ""
-                # words = row[row_idx].strip('][').split(', ') 
+            # if len(row[row_idx]) >= 3 :
+            # print('row single:', row[row_idx])
+            # words = row[row_idx].strip('][').split(', ') 
 
-                words = [f[1:-1] for f in re.findall("'.+?'", row[row_idx])]
+            #### No need to create a sentence ####
+            # testing_sentences = ""
+            #### No need to create a sentence ####
+            tmp =row[row_idx][:-1].split(',')
+            words = [f[2:-1] for f in tmp]
+            # words = [f[1:-1] for f in re.findall("'.+?'", row[row_idx])]                
+            #### words[0] => "\'" ####
+            #### words[0] => str ####
+            #### words => a list of strings ####
 
-                if len(words) == 0:
-                    continue
-                # print('word', words)
-                # print('word', type(words))
-                # print('word', len(words))
-                # print('word', words[0])
-                
-                for spt_sent in words:
-                    testing_sentences = testing_sentences + spt_sent + " "
+            # if len(words) == 0:
+            #     continue     
 
-                # print('sentence:', testing_sentences)
-                # print('sentence:', len(testing_sentences))
-                watson_test_data_obj.append(testing_sentences)
+            #### No need to create a sentence ####
+            # for spt_sent in words:
+            #     testing_sentences = testing_sentences + spt_sent + " "
+            # watson_test_data_obj.append(testing_sentences)
+            #### No need to create a sentence ####
 
-        # print('a:',watson_test_data_obj)
-        # print('a:',watson_test_data_obj[0])
-        # print('a:',watson_test_data_obj[1])
-        # print('a:',watson_test_data_obj[-2])
-        # print('a:',watson_test_data_obj[-1])
-        # sys.exit()
+            watson_test_data_obj.append(words)
 
 ############################################################
 # for line in open('en-50k-200.json', 'r'):
@@ -213,27 +198,21 @@ with open('en-50k-200.json_tokens.csv') as csvfile:
 #     sys.exit()
 #################################################################
 
-# inp_text = [
-#             "John lives SF here.",
-#             "I ate apple.",
-#             "I am a dancer and singer.",
-#             "Model Asset Exchange NER model is popular than other models.",
-#             "I like banana.",
-#             "I ate a lot of apples.",
-            # ]
-
-# text = inp_text
-# print(text)
-
 total_char = 0
+total_token = 0
 for c_char in range(len(watson_test_data_obj)):
-    number_tmp = len(watson_test_data_obj[c_char])
-    total_char += number_tmp
+    num_tok = len(watson_test_data_obj[c_char])
+    total_token += num_tok
+    for j in range(len(watson_test_data_obj[c_char])): 
+        number_tmp = len(watson_test_data_obj[c_char][j])
+        total_char += number_tmp
 print('TOTAL CHARACHERS:', total_char)
-entities, terms, total_inftime = model_wrapper.predict(watson_test_data_obj)
+print('TOTAL TOKEN:', total_token)
+
+
+entities, total_inftime = model_wrapper.predict(watson_test_data_obj)
 model_pred = {
             'tags': entities,
-            'terms': terms,
             'total_inftime':total_inftime
         }
 print('throughput:',total_char/total_inftime)
