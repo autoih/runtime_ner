@@ -1,0 +1,8 @@
+TOTAL CHARACHERS: 7404648
+TOTAL TOKEN: 1831477
++++++++
+434.8149870187044
+==========
+predict_batch size 32
+global empty word 0
+throughput: 17029.42221649199

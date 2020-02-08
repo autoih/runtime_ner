@@ -245,13 +245,14 @@ class ModelWrapper(MAXModelWrapper):
                 labels_pred_arr = np.argmax(pred, -1)
                 # labels_pred_arr = tf.math.argmax(pred, -1)
 
+                each_inf_time = timeit.default_timer() - inf_start_time
+                total_inf_time += each_inf_time
+
                 inf_elapsed_time.append(timeit.default_timer() - inf_start_time)
 
                 # for r in labels_pred_arr:
                 #     result.append([self.id_to_tag[i] for i in r.ravel()])
 
-                each_inf_time = timeit.default_timer() - inf_start_time
-                total_inf_time += each_inf_time
 
             ############## predicted labels #######################
             #labels_pred_arr = self._predict(word_ids_arr, char_ids_arr)
@@ -268,7 +269,7 @@ class ModelWrapper(MAXModelWrapper):
                             'inference time': inf_elapsed_time, 
                             'total inf time': total_inf_time})
 
-            InferTime_filename = '3Sorted_Inference_Time_bts_' + str(predict_batch_size[k]) + '.csv'
+            InferTime_filename = '7Sorted_Inference_Time_bts_' + str(predict_batch_size[k]) + '.csv'
             df.to_csv(InferTime_filename)
             print('+++++++')
             print(total_inf_time)
