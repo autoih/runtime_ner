@@ -74,7 +74,7 @@ class ModelWrapper(MAXModelWrapper):
         # print('padding tags.....', self.pad_tag)
         self.n_labels = n_tags + 1
 
-    def inter_process(self, words):
+    def _inter_process(self, words):
         word_ids = []
         char_ids = []
         for w in words:
@@ -88,7 +88,7 @@ class ModelWrapper(MAXModelWrapper):
         return word_ids_arr, char_ids_arr
 
     
-    def Sentence_sorting(self, sentences):
+    def _Sentence_sorting(self, sentences):
         sentce_length = []
         ind_sort_sent = []
         sorted_sentences = []
@@ -105,7 +105,7 @@ class ModelWrapper(MAXModelWrapper):
         
         return sorted_sentences
 
-    def word_id_process(self, input, range_of_btz):
+    def _word_id_process(self, input, range_of_btz):
         words = []
         for i_sent in range_of_btz:
             words_raw = input[i_sent]
@@ -116,7 +116,7 @@ class ModelWrapper(MAXModelWrapper):
         return words
 
 
-    def process_each_batch(self, input_data, batch ):
+    def _process_each_batch(self, input_data, batch ):
         inf_start_time =0 
         each_inf_time = 0
         pp_time = 0
@@ -128,11 +128,11 @@ class ModelWrapper(MAXModelWrapper):
 
         pp_start_time = timeit.default_timer()
         # get word_id
-        words = self.word_id_process(input_data, range_batch_size)
+        words = self._word_id_process(input_data, range_batch_size)
         # sentence_token.append(words_raw)
 
         # pad sentence          
-        word_ids_arr, char_ids_arr = self.inter_process(words)
+        word_ids_arr, char_ids_arr = self._inter_process(words)
         pp_time = timeit.default_timer() - pp_start_time
 
         inf_start_time = timeit.default_timer()     
@@ -162,14 +162,14 @@ class ModelWrapper(MAXModelWrapper):
             inf_elapsed_time = []
             total_inf_time = 0
 
-            Entire_sorted_sentence = self.Sentence_sorting(x)
+            Entire_sorted_sentence = self._Sentence_sorting(x)
             # all batches in one batch size
             for i in range(0, len(Entire_sorted_sentence), predict_batch_size[k]):
                 # Accumulate data
                 sentence_batch =[]
                 sentence_batch = Entire_sorted_sentence[i:i + predict_batch_size[k]]
                 
-                each_inf_time, pp_time = self.process_each_batch(sentence_batch, predict_batch_size[k])
+                each_inf_time, pp_time = self._process_each_batch(sentence_batch, predict_batch_size[k])
                 pp_elapsed_time.append(pp_time)
                 total_inf_time += each_inf_time
                 inf_elapsed_time.append(each_inf_time)
@@ -179,7 +179,7 @@ class ModelWrapper(MAXModelWrapper):
                             'inference time': inf_elapsed_time, 
                             'total inf time': total_inf_time})
 
-            InferTime_filename = '7Sorted_Inference_Time_bts_' + str(predict_batch_size[k]) + '.csv'
+            InferTime_filename = '10Sorted_Inference_Time_bts_' + str(predict_batch_size[k]) + '.csv'
             df.to_csv(InferTime_filename)
             total_inference_time_list.append(total_inf_time)
 
