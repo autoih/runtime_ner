@@ -151,7 +151,7 @@ class ModelWrapper(MAXModelWrapper):
 
     def _predict(self, x, predict_batch_size=0):
 
-        predict_batch_size = [ 2**j for j in range(8,8+1) ]
+        predict_batch_size = [ 2**j for j in range(3,10+1) ]
         total_inference_time_list = []
 
         # run different batch sizes
@@ -162,17 +162,32 @@ class ModelWrapper(MAXModelWrapper):
             inf_elapsed_time = []
             total_inf_time = 0
 
-            Entire_sorted_sentence = self._Sentence_sorting(x)
-            # all batches in one batch size
-            for i in range(0, len(Entire_sorted_sentence), predict_batch_size[k]):
-                # Accumulate data
-                sentence_batch =[]
-                sentence_batch = Entire_sorted_sentence[i:i + predict_batch_size[k]]
-                
-                each_inf_time, pp_time = self._process_each_batch(sentence_batch, predict_batch_size[k])
-                pp_elapsed_time.append(pp_time)
-                total_inf_time += each_inf_time
-                inf_elapsed_time.append(each_inf_time)
+            # print('here is x: ', x[0])
+            # print('here is x: ', type(x))
+            # print('here is x: ', type(x[0]))
+            # print('here is x: ', type(x[0][0]))
+            # print('here is x: ', x[0][0])
+            # print('here is x: ', len(x))
+            # print('here is x: ', len(x[0]))
+            # print('========')
+            # sys.exit()
+
+            
+            for document_ind in range(len(x)):
+                one_doc = []
+                one_doc = x[document_ind]
+
+                Entire_sorted_sentence = self._Sentence_sorting(one_doc)
+                # all batches in one batch size
+                for i in range(0, len(Entire_sorted_sentence), predict_batch_size[k]):
+                    # Accumulate data
+                    sentence_batch =[]
+                    sentence_batch = Entire_sorted_sentence[i:i + predict_batch_size[k]]
+                    
+                    each_inf_time, pp_time = self._process_each_batch(sentence_batch, predict_batch_size[k])
+                    pp_elapsed_time.append(pp_time)
+                    total_inf_time += each_inf_time
+                    inf_elapsed_time.append(each_inf_time)
 
             # save each batch for entire sentence result
             df = pd.DataFrame({'tokenization time': pp_elapsed_time,

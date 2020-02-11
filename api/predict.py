@@ -157,11 +157,12 @@ def extract_tokens(csv_file):
 
 tokenlist = extract_tokens('en-50k-200.json_tokensOR.csv')
 
+each_doct = []
 for j in tokenlist:
+    each_doct.append(j)
     for k in j:
         watson_test_data_obj.append(k)
 ###########################################################
-
 
 
 ###########################################################
@@ -241,7 +242,8 @@ print('TOTAL CHARACHERS:', total_char)
 print('TOTAL TOKEN:', total_token)
 
 
-entities, total_inftime = model_wrapper.predict(watson_test_data_obj)
+# entities, total_inftime = model_wrapper.predict(watson_test_data_obj)
+entities, total_inftime = model_wrapper.predict(each_doct)
 model_pred = {
             'tags': entities,
             'total_inftime':total_inftime
