@@ -28,6 +28,7 @@ import timeit
 import pandas as pd
 import mem_util
 from tensorflow.python.client import timeline
+import sys
 
 logger = logging.getLogger()
 
@@ -73,174 +74,132 @@ class ModelWrapper(MAXModelWrapper):
         # print('padding tags.....', self.pad_tag)
         self.n_labels = n_tags + 1
 
-    def inter_process(self, words):
-        # print('inside inter process')
-        # print(words)
-        # print('stacking process')
+    def _inter_process(self, words):
         word_ids = []
         char_ids = []
         for w in words:
             char_id, word_id = zip(*w)
-            # print(char_id, word_id)
             char_ids.append(char_id)
             word_ids.append(word_id)
         word_ids, _ = pad_sequences(word_ids, pad_tok=self.pad_tag)
         char_ids, _ = pad_sequences(char_ids, pad_tok=self.pad_tag, nlevels=2)
-        # print('atfer padding')
-        # print(word_ids)
-        # print(char_ids)
         word_ids_arr = np.array(word_ids)
         char_ids_arr = np.array(char_ids)
-        # print('shape of word array', word_ids_arr.shape)
-        # print('shape of char array', char_ids_arr.shape)
         return word_ids_arr, char_ids_arr
 
+    
+    def _Sentence_sorting(self, sentences):
+        sentce_length = []
+        ind_sort_sent = []
+        sorted_sentences = []
 
-    # def _pre_process(self, x, predict_batch_size=2):
-    #     print('---- Test -----')
-    #     print(x)
-    #     sentence_token = []
-    #     for i in range(0, len(x), predict_batch_size):
-    #         print(i)
-    #         # Accumulate data
-    #         input_data = x[i:i+predict_batch_size]
-    #         # iterate through data and get sentence tokens
-    #         words = []
-    #
-    #         for sentence in input_data:
-    #             words_raw = re.split(self.pat, sentence)
-    #             words_raw = [w.strip() for w in words_raw]      # strip whitespace
-    #             words_raw = [w for w in words_raw if w]         # keep only non-empty terms, keeping raw punctuation
-    #             words.append([self.proc_fn(w) for w in words_raw])
-    #
-    #             sentence_token.append(words_raw)
-    #
-    #
-    #         # pad sentence
-    #         print('batch words', words)
-    #         word_ids_arr, char_ids_arr = self.inter_process(words)
-    #     return sentence_token, word_ids_arr, char_ids_arr
-    #
-    # def _post_process(self, x):
-    #     print('Inside post process')
-    #     print(x)
-    #     result = []
-    #     for r in x:
-    #         result.append([self.id_to_tag[i] for i in r.ravel()])
-    #     print('final result', result)
-    #     return result
+        # get all length of all sentences
+        for len_x in range(len(sentences)):
+                sentce_length.append(len(sentences[len_x]))
 
-    # def _predict(self, word_ids_arr, char_ids_arr):
-    #     pred = self.sess.run(self.output_tensor, feed_dict={
-    #         self.word_ids_tensor: word_ids_arr,
-    #         self.char_ids_tensor: char_ids_arr
-    #     })
-    #     return np.argmax(pred, -1)
+        ind_sort_sent = np.argsort(sentce_length)
+        new_index_order = ind_sort_sent.tolist()
+            
+        for x_ind in range (len(new_index_order)):
+            sorted_sentences.append(sentences[new_index_order[x_ind]])
+        
+        return sorted_sentences
 
-    def _predict(self, x, predict_batch_size=32):
-        # print('---- Test -----')
-        # print(x)
-        sentence_token = []
-        result = []
-        pp_elapsed_time = []
-        inf_elapsed_time = []
-        total_inf_time = 0
+    def _word_id_process(self, input, range_of_btz):
+        words = []
+        for i_sent in range_of_btz:
+            words_raw = input[i_sent]
+            if len(input[i_sent]) == 0:
+                words_raw = ['']
+            words.append([self.proc_fn(w) for w in words_raw])
+
+        return words
+
+
+    def _process_each_batch(self, input_data, batch ):
+        inf_start_time =0 
         each_inf_time = 0
+        pp_time = 0
 
-        # define run_options and run_metadata
-        run_options = tf.RunOptions(trace_level=tf.RunOptions.FULL_TRACE)
-        run_metadata = tf.RunMetadata() 
+        # Deal with sentences of the last batch is smaller the batch size
+        range_batch_size = [ idx for idx in range(batch)]
+        if len(input_data) < batch: 
+            range_batch_size = [ idx for idx in range(len(input_data))]
 
-        cnt_time = 1
+        pp_start_time = timeit.default_timer()
+        # get word_id
+        words = self._word_id_process(input_data, range_batch_size)
+        # sentence_token.append(words_raw)
 
-        for k in range(10):
-            cnt_time += 1
+        # pad sentence          
+        word_ids_arr, char_ids_arr = self._inter_process(words)
+        pp_time = timeit.default_timer() - pp_start_time
+
+        inf_start_time = timeit.default_timer()     
+        pred = self.sess.run(self.output_tensor, feed_dict={
+            self.word_ids_tensor: word_ids_arr,
+            self.char_ids_tensor: char_ids_arr
+        })      
+        labels_pred_arr = np.argmax(pred, -1)
+
+        each_inf_time = timeit.default_timer() - inf_start_time
+        # total_inf_time += each_inf_time
+        # inf_elapsed_time.append(timeit.default_timer() - inf_start_time)
+
+        return each_inf_time, pp_time
+
+
+    def _predict(self, x, predict_batch_size=0):
+
+        predict_batch_size = [ 2**j for j in range(3,10+1) ]
+        total_inference_time_list = []
+
+        # run different batch sizes
+        for k in range(len(predict_batch_size)):
+            # sentence_token = []
+            result = []
+            pp_elapsed_time = []
+            inf_elapsed_time = []
+            total_inf_time = 0
+
+            # print('here is x: ', x[0])
+            # print('here is x: ', type(x))
+            # print('here is x: ', type(x[0]))
+            # print('here is x: ', type(x[0][0]))
+            # print('here is x: ', x[0][0])
+            # print('here is x: ', len(x))
+            # print('here is x: ', len(x[0]))
+            # print('========')
+            # sys.exit()
+
             
-            for i in range(0, len(x), predict_batch_size):
+            for document_ind in range(len(x)):
+                one_doc = []
+                one_doc = x[document_ind]
 
-                # print(i)
-                # Accumulate data
-                input_data = x[i:i + predict_batch_size]
-                # iterate through data and get sentence tokens
-                words = []
+                Entire_sorted_sentence = self._Sentence_sorting(one_doc)
+                # all batches in one batch size
+                for i in range(0, len(Entire_sorted_sentence), predict_batch_size[k]):
+                    # Accumulate data
+                    sentence_batch =[]
+                    sentence_batch = Entire_sorted_sentence[i:i + predict_batch_size[k]]
+                    
+                    each_inf_time, pp_time = self._process_each_batch(sentence_batch, predict_batch_size[k])
+                    pp_elapsed_time.append(pp_time)
+                    total_inf_time += each_inf_time
+                    inf_elapsed_time.append(each_inf_time)
 
-                pp_start_time = timeit.default_timer()
-                for sentence in input_data:
-                    words_raw = re.split(self.pat, sentence)
-                    words_raw = [w.strip() for w in words_raw]  # strip whitespace
-                    words_raw = [w for w in words_raw if w]  # keep only non-empty terms, keeping raw punctuation
-                    words.append([self.proc_fn(w) for w in words_raw])
+            # save each batch for entire sentence result
+            df = pd.DataFrame({'tokenization time': pp_elapsed_time,
+                            'inference time': inf_elapsed_time, 
+                            'total inf time': total_inf_time})
 
-                    sentence_token.append(words_raw)
+            InferTime_filename = '10Sorted_Inference_Time_bts_' + str(predict_batch_size[k]) + '.csv'
+            df.to_csv(InferTime_filename)
+            total_inference_time_list.append(total_inf_time)
 
-                # pad sentence
-                # print('batch words', words)
-                word_ids_arr, char_ids_arr = self.inter_process(words)
-                pp_elapsed_time.append(timeit.default_timer() - pp_start_time)
-
-            #words, word_ids_arr, char_ids_arr = self._pre_process(x)
-            #print('sentence token')
-            #print(words)
-                inf_start_time = timeit.default_timer()
-                pred = self.sess.run(self.output_tensor, feed_dict={
-                    self.word_ids_tensor: word_ids_arr,
-                    self.char_ids_tensor: char_ids_arr
-                }, options=run_options,
-                run_metadata=run_metadata)
-            
-                labels_pred_arr = np.argmax(pred, -1)
-
-                ### HERE IS MEMORY PEAK EVALUATION ####
-                # log the peak memory consumed by the model
-                peak_memory = mem_util.peak_memory(run_metadata)
-                print("The peak memory consumed by the BiLSTM model: {} bytes".format(peak_memory))
-                
-                mem_filename = 'memory_peak_bts32_' + str(cnt_time) + '.txt'
-                with open(mem_filename, 'a') as fd:
-                    fd.write(str(peak_memory['/cpu:0'])+'\n')
-
-                # create the Timeline object, and write it to a json file
-                fetched_timeline = timeline.Timeline(run_metadata.step_stats)
-                chrome_trace = fetched_timeline.generate_chrome_trace_format()
-
-                with open('profiling_trace_bts32.json', 'w') as file_handle:
-                    file_handle.write(chrome_trace)
-                ### HERE IS MEMORY PEAK EVALUATION ####
-
-                # print('Inside post process')
-                #print(x)
-                each_inf_time = timeit.default_timer() - inf_start_time
-                inf_elapsed_time.append(each_inf_time)
-                for r in labels_pred_arr:
-                    result.append([self.id_to_tag[i] for i in r.ravel()])
-                total_inf_time += each_inf_time
-            # print('final result', result)
-            # print('sentence token', sentence_token)
-            #labels_pred_arr = self._predict(word_ids_arr, char_ids_arr)
-            #labels_pred = self._post_process(labels_pred_arr)
-
-
-
-            # print('---------++++++++++++++++++-------------------')
-            # print('PP time', pp_elapsed_time)
-            # print('inf', inf_elapsed_time)
-
-
-        # df2 = pd.DataFrame({'memory peak': peak_memory_all})
-        # df2.to_csv('en-50k-200_bts32_mempeak.csv')
-
-
-
-
-        # pp_elapsed_time.append(sum(pp_elapsed_time)/len(pp_elapsed_time))
-        # inf_elapsed_time.append(sum(inf_elapsed_time)/len(inf_elapsed_time))
-
-        # df = pd.DataFrame({'tokenization time': pp_elapsed_time,
-        #                    'inference time': inf_elapsed_time, 
-        #                    'total inf time': total_inf_time})
-
-        # df.to_csv('en-50k-200_bts32_3.csv')
-        # print('+++++++')
-        # print(total_inf_time)
-
-        return result, sentence_token,total_inf_time
+            print('total_inf_time: ', total_inf_time)
+            print('predict_batch size: ', predict_batch_size[k])
+            print('all batch size inference time: ', total_inference_time_list)
+        
+        return result, total_inf_time
