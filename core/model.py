@@ -161,17 +161,6 @@ class ModelWrapper(MAXModelWrapper):
             pp_elapsed_time = []
             inf_elapsed_time = []
             total_inf_time = 0
-
-            # print('here is x: ', x[0])
-            # print('here is x: ', type(x))
-            # print('here is x: ', type(x[0]))
-            # print('here is x: ', type(x[0][0]))
-            # print('here is x: ', x[0][0])
-            # print('here is x: ', len(x))
-            # print('here is x: ', len(x[0]))
-            # print('========')
-            # sys.exit()
-
             
             for document_ind in range(len(x)):
                 one_doc = []
