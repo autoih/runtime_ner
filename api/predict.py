@@ -75,16 +75,11 @@ class ModelLabelsAPI(MetadataAPI):
         result['count'] = len(model_wrapper.id_to_tag)
         return result
 
-# === Predict API
-
 
 input_example = ['John lives SF here.', 'I ate apple.', 'I am a dancer and singer.', 'Model Asset Exchange NER model is popular than other models.', 'I like banana.', 'I ate a lot of apples.']
 ent_example = ['I-PER', 'O', 'O', 'I-LOC', 'O', 'O', 'O', 'O', 'I-ORG']
 term_example = ['John', 'lives', 'in', 'Brussels', 'and', 'works', 'for', 'the', 'EU']
 
-# model_input = MAX_API.model('ModelInput', {
-#     'text': fields.String(required=True, description='Text for which to predict entities', example=input_example)
-# })
 
 model_input = MAX_API.model('ModelInput', {
     'text': fields.List(fields.String, required=True,

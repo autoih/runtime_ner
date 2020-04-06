@@ -71,7 +71,6 @@ class ModelWrapper(MAXModelWrapper):
         self.n_char = len(vocab_chars)
         n_tags = len(vocab_tags)
         self.pad_tag = n_tags
-        # print('padding tags.....', self.pad_tag)
         self.n_labels = n_tags + 1
 
     def _inter_process(self, words):
@@ -143,8 +142,6 @@ class ModelWrapper(MAXModelWrapper):
         labels_pred_arr = np.argmax(pred, -1)
 
         each_inf_time = timeit.default_timer() - inf_start_time
-        # total_inf_time += each_inf_time
-        # inf_elapsed_time.append(timeit.default_timer() - inf_start_time)
 
         return each_inf_time, pp_time
 
